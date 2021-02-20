@@ -1,0 +1,38 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: "example"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["localhost:9093"]
+
+rule_files:
+  - "/alertmanager/alert.rules/alerts.rules.yml"
+
+scrape_configs:
+  - job_name: "prometheus"
+    scrape_interval: 5s
+    scrape_timeout: 5s
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: "blackbox"
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: ([^,]*),(.*)
+        replacement: $1
+        target_label: __param_target
+      - source_labels: [__address__]
+        target_label: instance
+      - target_label: __address__
+        replacement: localhost:9115
+
+    static_configs:
+      - targets:
+          - http://localhost:9090,prometheus # Targets must have the format http://<host>,prometheus
